@@ -1,0 +1,173 @@
+{
+  "Comment": "A state machine to execute Pipeline",
+  "StartAt": "Submit Job 1",
+  "States": {
+    "Submit Job 1": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:12345:function:MyLambdaforJob1",
+      "ResultPath": "$.jobId",
+      "Next": "Wait X Seconds for Job 1"
+    },
+    "Wait X Seconds for Job 1":{
+      "Type":"Wait",
+      "Seconds":30,
+      "Next":"Get Job 1 Status"
+    },
+    "Get Job 1 Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:12345:function:getJobStatus",
+      "Next": "Job 1 Complete?",
+      "InputPath": "$.jobId",
+      "ResultPath": "$.status",
+        "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "MaxAttempts": 2
+        }
+      ]
+    },
+    "Job 1 Complete?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "FAILED",
+          "Next": "All Done"
+        },
+        {
+          "Variable": "$.status",
+          "StringEquals": "SUCCEEDED",
+          "Next": "Start Parallel Steps"
+        }
+      ],
+      "Default": "Wait X Seconds for Job 1"
+    },
+    "Start Parallel Steps":{
+      "Type":"Parallel",
+      "Next":"All Done",
+      "Branches":[
+           {
+              "StartAt":"Submit Parallel Job 1",
+              "States":{
+                "Submit Parallel Job 1":{
+                    "Type": "Task",
+                    "Resource": "arn:aws:lambda:us-east-1:12345:function:ParallelJob1Lambda",
+                    "ResultPath": "$.jobId",
+                    "Next": "wait X Seconds for Parallel Job 1"
+                },
+                "wait X Seconds for Parallel Job 1":{
+                    "Type":"Wait",
+                    "Seconds":30,
+                    "Next":"Get Parallel Job 1 Status"
+                },
+                "Get Parallel Job 1 Status": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:lambda:us-east-1:12345:function:getJobStatus",
+                    "Next": "Parallel Job 1 Complete?",
+                    "InputPath": "$.jobId",
+                    "ResultPath": "$.status",
+                    "Retry": [
+                        {
+                        "ErrorEquals": [
+                        "States.ALL"
+                        ],
+                        "MaxAttempts": 2
+                        }
+                    ]
+                   },
+                "Parallel Job 1 Complete?": {
+                    "Type": "Choice",
+                    "Choices": [
+                    {
+                    "Variable": "$.status",
+                    "StringEquals": "FAILED",
+                    "Next": "Report Parallel Job 1 Failure"
+                    },
+                    {
+                    "Variable": "$.status",
+                    "StringEquals": "SUCCEEDED",
+                    "Next": "Report Parallel Job 1 Success"
+                    }
+                    ],
+                    "Default": "wait X Seconds for Parallel Job 1"
+                    },
+                "Report Parallel Job 1 Failure":{
+                      "Type": "Fail",
+                      "Cause": "AWS Batch Job Failed",
+                      "Error": "DescribeJob returned FAILED"
+                },
+                "Report Parallel Job 1 Success":{
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:us-east-1:12345:function:TestS3Event",
+                      "End": true
+                }
+                  }
+           },
+           {
+              "StartAt":"Submit Parallel Job 2",
+              "States":{
+                "Submit Parallel Job 2":{
+                    "Type": "Task",
+                    "Resource": "arn:aws:lambda:us-east-1:12345:function:ParallelJob2Lambda",
+                    "ResultPath": "$.jobId",
+                    "Next": "wait X Seconds for Parallel Job 2"
+                },
+                "wait X Seconds for Parallel Job 2":{
+                    "Type":"Wait",
+                    "Seconds":30,
+                    "Next":"Get Parallel Job 2 Status"
+                },
+                "Get Parallel Job 2 Status": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:lambda:us-east-1:12345:function:getJobStatus",
+                    "Next": "Parallel Job 2 Complete?",
+                    "InputPath": "$.jobId",
+                    "ResultPath": "$.status",
+                    "Retry": [
+                        {
+                        "ErrorEquals": [
+                        "States.ALL"
+                        ],
+                        "MaxAttempts": 2
+                        }
+                    ]
+                   },
+                "Parallel Job 2 Complete?": {
+                    "Type": "Choice",
+                    "Choices": [
+                    {
+                    "Variable": "$.status",
+                    "StringEquals": "FAILED",
+                    "Next": "Report Parallel Job 2 Failure"
+                    },
+                    {
+                    "Variable": "$.status",
+                    "StringEquals": "SUCCEEDED",
+                    "Next": "Report Parallel Job 2 Success"
+                    }
+                    ],
+                    "Default": "wait X Seconds for Parallel Job 2"
+                    },
+                "Report Parallel Job 2 Failure":{
+                      "Type": "Fail",
+                      "Cause": "AWS Batch Job Failed",
+                      "Error": "DescribeJob returned FAILED"
+                },
+                "Report Parallel Job 2 Success":{
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:us-east-1:12345:function:TestS3Event",
+                      "End": true
+                }
+                  }
+           }
+      ]
+    },
+    "All Done":{
+     "Type": "Wait",
+     "Seconds": 30,
+     "End": true
+    }
+   }
+}
