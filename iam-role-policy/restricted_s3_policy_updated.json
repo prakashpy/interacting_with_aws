@@ -1,0 +1,28 @@
+{
+    "Version": "2020-10-17",
+    "Statement": [
+        {
+            "Sid": "XX00XX001",
+            "Action": [
+                "s3:ListBucket",
+                "s3:HeadBucket",
+                "s3:GetBucketLocation"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:s3:::your-bucket-name"
+            ]
+        },
+        {
+            "Sid": "XX00XX001",
+            "Action": [
+                "s3:HeadObject",
+                "s3:GetObject"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:s3:::your-bucket-name/*"
+            ]
+        }
+    ]
+}
